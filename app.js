@@ -12,6 +12,7 @@ const io = socketIo(server);
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Import routes
 const authRoutes = require('./backend/auth');
@@ -31,10 +32,18 @@ app.use('/api/scripts', scriptsRouter);
 app.use('/api/ai', aiAssistanceRouter);
 app.use('/api/subscriptions', subscriptionsRouter);
 
-// Error handling middleware
+// Add error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something broke!' });
+    console.error(err.stack);
+    res.status(500).json({
+        status: 'error',
+        message: err.message
+    });
+});
+
+// Test route to verify API is working
+app.get('/api/test', (req, res) => {
+    res.json({ message: 'API is working' });
 });
 
 // Initialize collaboration module with io instance only if not in test environment
@@ -42,7 +51,7 @@ if (process.env.NODE_ENV !== 'test') {
     require('./backend/collaboration')(io);
 }
 
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 3002;
 
 if (process.env.NODE_ENV !== 'test') {
     connectDB().then(() => {

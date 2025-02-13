@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const cors = require('cors');
 const router = express.Router();
 const { User } = require('./models');
 
@@ -8,94 +9,139 @@ const { User } = require('./models');
 const JWT_SECRET = 'your_jwt_secret';
 const SALT_ROUNDS = 10;
 
+// Add this before your routes
+router.use(cors({
+    origin: 'http://localhost:3001',
+    credentials: true
+}));
+
+// Add this test route to verify routing is working
+router.get('/test', (req, res) => {
+    res.json({ message: 'Auth routes are working' });
+});
+
+// Debug middleware - log all requests
+router.use((req, res, next) => {
+    console.log('Auth Route:', {
+        method: req.method,
+        path: req.path,
+        body: req.body,
+        headers: req.headers
+    });
+    next();
+});
+
 // User registration endpoint
 router.post('/register', async (req, res) => {
-    console.log('Registration request received:', req.body);
-
     try {
+        console.log('Register endpoint hit');
+        console.log('Request body:', req.body);
+
         const { username, email, password } = req.body;
 
         // Validate input
         if (!username || !email || !password) {
-            return res.status(400).json({ 
-                error: 'Please provide username, email, and password.' 
+            console.log('Missing fields:', { username: !username, email: !email, password: !password });
+            return res.status(400).json({
+                status: 'error',
+                message: 'Please provide username, email, and password'
             });
         }
 
-        // Check if user already exists
+        // Check if user exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            console.log('User already exists:', email);
-            return res.status(400).json({ error: 'User already exists' });
+            return res.status(400).json({
+                status: 'error',
+                message: 'Email already registered'
+            });
         }
 
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // Create new user
+        // Create user
         const user = new User({
             username,
             email,
-            password: hashedPassword
+            password: await bcrypt.hash(password, 10)
         });
 
         await user.save();
-        console.log('User created successfully:', username);
+        console.log('User saved successfully:', user._id);
 
-        // Return success without password
-        res.status(201).json({
-            message: 'User registered successfully',
-            userId: user._id
+        // Create token
+        const token = jwt.sign(
+            { userId: user._id },
+            process.env.JWT_SECRET || 'fallback_secret',
+            { expiresIn: '24h' }
+        );
+
+        // Send response
+        return res.status(201).json({
+            status: 'success',
+            data: {
+                token,
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email
+                }
+            }
         });
+
     } catch (error) {
         console.error('Registration error:', error);
-        res.status(500).json({ error: 'Error registering user' });
+        return res.status(500).json({
+            status: 'error',
+            message: error.message
+        });
     }
 });
 
 // User login endpoint
 router.post('/login', async (req, res) => {
     try {
+        console.log('Login attempt:', req.body.email); // Debug log
+
         const { email, password } = req.body;
 
-        // Validate required fields
+        // Validate input
         if (!email || !password) {
-            return res.status(400).json({
-                error: 'Please provide email and password.'
-            });
+            return res.status(400).json({ error: 'Please provide email and password' });
         }
 
-        // Find user by email
+        // Find user
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({
-                error: 'Invalid email or password.'
-            });
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Verify password
-        const isValidPassword = await bcrypt.compare(password, user.password);
-        if (!isValidPassword) {
-            return res.status(400).json({
-                error: 'Invalid email or password.'
-            });
+        // Check password
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) {
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Generate JWT token
+        // Create token
         const token = jwt.sign(
-            { userId: user._id, email: user.email },
-            JWT_SECRET,
-            { expiresIn: '1h' }
+            { userId: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
         );
 
-        // Return success response with token
-        res.status(200).json({
+        console.log('Login successful:', email); // Debug log
+
+        res.json({
             message: 'Login successful',
-            token
+            token,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email
+            }
         });
+
     } catch (error) {
-        res.status(500).json({ error: 'Server error during login' });
+        console.error('Login error:', error); // Debug log
+        res.status(500).json({ error: 'Error logging in' });
     }
 });
 

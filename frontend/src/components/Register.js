@@ -1,82 +1,107 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import './Register.css';
 
 function Register() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        username: '',
+        email: '',
+        password: ''
+    });
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError(''); // Clear any previous errors
-    
-    try {
-      console.log('Sending registration request:', { username, email }); // Add this line
-      
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, email, password }),
-      });
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
 
-      const data = await response.json();
+        try {
+            console.log('Sending registration request...');
+            
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
 
-      if (response.ok) {
-        console.log('Registration successful'); // Add this line
-        navigate('/');
-      } else {
-        console.error('Registration failed:', data); // Add this line
-        setError(data.error || 'Registration failed');
-      }
-    } catch (error) {
-      console.error('Registration error:', error); // Add this line
-      setError('Registration failed. Please try again.');
-    }
-  };
+            const data = await response.json();
+            console.log('Registration response:', data);
 
-  return (
-    <div>
-      <h2>Register</h2>
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Username:</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
+            if (data.status === 'success') {
+                // Save token
+                localStorage.setItem('token', data.data.token);
+                console.log('Registration successful, redirecting...');
+                navigate('/dashboard');
+            } else {
+                throw new Error(data.message || 'Registration failed');
+            }
+
+        } catch (error) {
+            console.error('Registration error:', error);
+            setError(error.message || 'An unexpected error occurred');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="register-container">
+            <h2>Register</h2>
+            {error && (
+                <div className="error-message">
+                    {error}
+                </div>
+            )}
+            
+            <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                    <label htmlFor="username">Username:</label>
+                    <input
+                        type="text"
+                        id="username"
+                        value={formData.username}
+                        onChange={(e) => setFormData({...formData, username: e.target.value})}
+                        required
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="email">Email:</label>
+                    <input
+                        type="email"
+                        id="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        required
+                    />
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="password">Password:</label>
+                    <input
+                        type="password"
+                        id="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        required
+                        minLength="6"
+                    />
+                </div>
+
+                <button type="submit" disabled={loading}>
+                    {loading ? 'Registering...' : 'Register'}
+                </button>
+            </form>
+
+            <div className="status-message">
+                {loading ? 'Processing...' : 'Ready'}
+            </div>
         </div>
-        <div>
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit">Register</button>
-      </form>
-      <p>
-        Already have an account? <Link to="/">Login</Link>
-      </p>
-    </div>
-  );
+    );
 }
 
 export default Register; 

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const User = require('./User');
 
 // User Schema
 const userSchema = new mongoose.Schema({
@@ -35,7 +36,7 @@ const characterSchema = new mongoose.Schema({
 
 // Export models
 module.exports = {
-    User: mongoose.models.User || mongoose.model('User', userSchema),
+    User,
     WorldContext: mongoose.models.WorldContext || mongoose.model('WorldContext', worldContextSchema),
     Character: mongoose.models.Character || mongoose.model('Character', characterSchema)
 }; 
