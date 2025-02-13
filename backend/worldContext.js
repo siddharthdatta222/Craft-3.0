@@ -6,20 +6,40 @@ const { WorldContext } = require('./models');
 // Routes
 router.post('/', verifyToken, async (req, res) => {
     try {
-        console.log('Received world context data:', req.body);
-        
-        const worldContext = new WorldContext({
-            userId: req.user._id,
-            name: req.body.name,
-            description: req.body.description,
-            rules: req.body.rules
+        console.log('Creating world context with user ID:', req.user.id);
+        console.log('Request body:', req.body);
+
+        // Validate required fields
+        if (!req.body.title) {
+            return res.status(400).json({ error: 'Title is required' });
+        }
+
+        const newContext = new WorldContext({
+            title: req.body.title,
+            description: req.body.description || '',
+            userId: req.user.id
         });
 
-        await worldContext.save();
-        res.status(201).json({ message: 'World context saved successfully', data: worldContext });
+        // Validate the model before saving
+        const validationError = newContext.validateSync();
+        if (validationError) {
+            console.error('Validation error:', validationError);
+            return res.status(400).json({ error: validationError.message });
+        }
+
+        const savedContext = await newContext.save();
+        console.log('Successfully saved context:', savedContext);
+        
+        res.status(201).json(savedContext);
     } catch (error) {
-        console.error('Error saving world context:', error);
-        res.status(500).json({ error: 'Error saving world context' });
+        console.error('Detailed error:', error);
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ error: error.message });
+        }
+        if (error.name === 'MongoError') {
+            return res.status(500).json({ error: 'Database error: ' + error.message });
+        }
+        res.status(500).json({ error: 'Error saving world context: ' + error.message });
     }
 });
 
@@ -80,6 +100,11 @@ router.delete('/:id', verifyToken, async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Server error while deleting node' });
     }
+});
+
+// GET route to test if the endpoint is working
+router.get('/test', (req, res) => {
+    res.json({ message: 'World context endpoint is working' });
 });
 
 // Error handling middleware

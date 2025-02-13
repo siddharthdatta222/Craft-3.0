@@ -3,20 +3,27 @@ const mongoose = require('mongoose');
 // Connection function
 const connectDB = async () => {
     try {
-        const uri = process.env.MONGODB_URI || 'mongodb://localhost/scriptwriting-app';
+        console.log('MongoDB URI:', process.env.MONGODB_URI);
+        const conn = await mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
         
-        const options = {
-            serverSelectionTimeoutMS: process.env.NODE_ENV === 'test' ? 1000 : 30000,
-            connectTimeoutMS: process.env.NODE_ENV === 'test' ? 1000 : 30000,
-        };
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        
+        // Test the connection
+        conn.connection.on('error', err => {
+            console.error('MongoDB connection error:', err);
+        });
 
-        const connection = await mongoose.connect(uri, options);
-        
-        console.log('MongoDB connected successfully');
-        return connection;
+        conn.connection.on('disconnected', () => {
+            console.log('MongoDB disconnected');
+        });
+
+        return conn;
     } catch (error) {
-        console.error('MongoDB connection error:', error.message);
-        throw error;
+        console.error('MongoDB connection error:', error);
+        process.exit(1);
     }
 };
 
