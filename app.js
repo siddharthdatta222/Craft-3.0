@@ -8,7 +8,6 @@ const cors = require('cors');
 const net = require('net');
 
 // Import routes
-const authRouter = require('./backend/routes/auth');
 const worldRouter = require('./backend/worldContext');
 const scriptRouter = require('./backend/routes/scripts');
 const characterRouter = require('./backend/routes/characters');
@@ -43,19 +42,13 @@ app.use((req, res, next) => {
     next();
 });
 
-// Mount routes
-app.use('/api/auth', authRouter);
+// Mount routes without auth
 app.use('/api/world', worldRouter);
 app.use('/api/scripts', scriptRouter);
 app.use('/api/characters', characterRouter);
 app.use('/api/relationships', relationshipRouter);
 
-// Basic route for testing
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Server is running' });
-});
-
-// Add this near your other routes
+// Test endpoint
 app.get('/api/test', (req, res) => {
     res.json({ message: 'Backend is running!' });
 });
