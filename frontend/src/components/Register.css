@@ -1,55 +1,57 @@
 .register-container {
     max-width: 400px;
-    margin: 40px auto;
-    padding: 20px;
-    background: white;
+    margin: 2rem auto;
+    padding: 2rem;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    background: white;
+}
+
+.error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    text-align: center;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 1rem;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 0.5rem;
     font-weight: 500;
 }
 
 .form-group input {
     width: 100%;
-    padding: 8px;
+    padding: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 16px;
+    font-size: 1rem;
 }
 
-.error-message {
-    color: #dc3545;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 4px;
-}
-
-button {
+.register-btn {
     width: 100%;
-    padding: 10px;
+    padding: 0.75rem;
     background-color: #007bff;
     color: white;
     border: none;
     border-radius: 4px;
-    font-size: 16px;
+    font-size: 1rem;
     cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-button:disabled {
+.register-btn:disabled {
     background-color: #ccc;
+    cursor: not-allowed;
 }
 
-button:hover:not(:disabled) {
+.register-btn:hover:not(:disabled) {
     background-color: #0056b3;
 }
 

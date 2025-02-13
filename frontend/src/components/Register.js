@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Register.css';
 
@@ -9,43 +9,74 @@ function Register() {
         password: ''
     });
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3002';
+
+    // Test backend connection on component mount
+    useEffect(() => {
+        const testConnection = async () => {
+            try {
+                console.log('Testing backend connection...');
+                const response = await fetch(`${API_URL}/api/test`);
+                const data = await response.json();
+                console.log('Backend test response:', data);
+            } catch (err) {
+                console.error('Backend connection test failed:', err);
+                setError('Backend connection failed');
+            }
+        };
+
+        testConnection();
+    }, [API_URL]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
         setError('');
-        setLoading(true);
 
         try {
-            console.log('Sending registration request...');
-            
-            const response = await fetch('/api/auth/register', {
+            console.log('Making registration request to:', `${API_URL}/api/auth/register`);
+            console.log('With data:', { ...formData, password: '[HIDDEN]' });
+
+            const response = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(formData),
+                credentials: 'include'
             });
 
-            const data = await response.json();
-            console.log('Registration response:', data);
-
-            if (data.status === 'success') {
-                // Save token
-                localStorage.setItem('token', data.data.token);
-                console.log('Registration successful, redirecting...');
-                navigate('/dashboard');
-            } else {
-                throw new Error(data.message || 'Registration failed');
+            console.log('Registration response:', response);
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Registration failed:', errorData);
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
             }
 
-        } catch (error) {
-            console.error('Registration error:', error);
-            setError(error.message || 'An unexpected error occurred');
+            const data = await response.json();
+            console.log('Registration successful:', data);
+
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('username', formData.username);
+
+            navigate('/dashboard');
+        } catch (err) {
+            console.error('Registration error details:', err);
+            setError(err.message || 'Failed to register. Please try again.');
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
+    };
+
+    const handleChange = (e) => {
+        setFormData(prev => ({
+            ...prev,
+            [e.target.name]: e.target.value
+        }));
     };
 
     return (
@@ -54,52 +85,50 @@ function Register() {
             {error && (
                 <div className="error-message">
                     {error}
+                    <br />
+                    <small>API URL: {API_URL}</small>
                 </div>
             )}
-            
             <form onSubmit={handleSubmit}>
                 <div className="form-group">
-                    <label htmlFor="username">Username:</label>
+                    <label>Username:</label>
                     <input
                         type="text"
-                        id="username"
+                        name="username"
                         value={formData.username}
-                        onChange={(e) => setFormData({...formData, username: e.target.value})}
+                        onChange={handleChange}
                         required
                     />
                 </div>
-
                 <div className="form-group">
-                    <label htmlFor="email">Email:</label>
+                    <label>Email:</label>
                     <input
                         type="email"
-                        id="email"
+                        name="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        onChange={handleChange}
                         required
                     />
                 </div>
-
                 <div className="form-group">
-                    <label htmlFor="password">Password:</label>
+                    <label>Password:</label>
                     <input
                         type="password"
-                        id="password"
+                        name="password"
                         value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        onChange={handleChange}
                         required
                         minLength="6"
                     />
                 </div>
-
-                <button type="submit" disabled={loading}>
-                    {loading ? 'Registering...' : 'Register'}
+                <button 
+                    type="submit" 
+                    className="register-btn"
+                    disabled={isLoading}
+                >
+                    {isLoading ? 'Registering...' : 'Register'}
                 </button>
             </form>
-
-            <div className="status-message">
-                {loading ? 'Processing...' : 'Ready'}
-            </div>
         </div>
     );
 }
